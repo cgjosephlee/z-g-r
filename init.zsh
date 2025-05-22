@@ -52,14 +52,53 @@ zgr-install () {
         -ver=opt_ver \
         --pick:=opt_pick
 
-    opt_repo="$@[0]"
+    opt_repo="$@[1]"
 
     local user="${opt_repo%%/*}"
     local repo="${opt_repo#*/}"
     local pkg_dir="$ZGR_PKG_DIR/$user---$repo"
 
     # Check if the package is already installed
-    [[ -d "$pkg_dir" ]] && return 0
+    if [[ -d "$pkg_dir" ]]; then
+        .zgr-log "debug" "Package $user/$repo is already installed in $pkg_dir."
+        return 0
+    else
+        .zgr-log "info" "Installing package $user/$repo."
+        mkdir -p "$pkg_dir" || {
+            .zgr-log "error" "Failed to create directory $pkg_dir."
+            return 1
+        }
+    fi
+
+    # Get the asset URL
+    local asset_url
+    asset_url=$(
+        .zgr-get-gh-r-asset "$user" "$repo" "$opt_ver" "$opt_pick" || {
+            .zgr-log "error" "Failed to get the asset for $user/$repo."
+            return 1
+        }
+    )
+
+    # Download the asset, save to ZGR_PKG_DIR temporarily
+    local asset_file="${asset_url:t}"
+    local asset_path="$ZGR_PKG_DIR/$asset_file"
+    if [[ -f "$asset_path" ]]; then
+        .zgr-log "debug" "Asset $asset_file already exists, skipping download."
+        rm -f "$asset_path"
+    fi
+    .zgr-log "info" "Downloading $asset_url."
+    .zgr-download-file "$asset_url" "$asset_path" || {
+        .zgr-log "error" "Failed to download asset $asset_file."
+        return 1
+    }
+
+    # Extract the asset
+    .zgr-extract "$asset_path" "$pkg_dir" || {
+        .zgr-log "error" "Failed to extract asset $asset_file."
+        return 1
+    }
+
+    .zgr-log "info" "Package $user/$repo installed successfully."
 }
 
 zgr-uninstall () {}
@@ -103,19 +142,19 @@ zgr-update () {}
     local dest="$2"
 
     # if GITHUB_TOKEN is set and url contains "api", use it for authentication
-    local optC="" optW=""
+    local optC=() optW=()
     if [[ -n $GITHUB_TOKEN && $url == *"api.github.com"* ]]; then
-        optC="-H \"Authorization: Bearer $GITHUB_TOKEN\""
-        optW="--header=\"Authorization: Bearer $GITHUB_TOKEN\""
+        optC=(-H "Authorization: Bearer $GITHUB_TOKEN")
+        optW=(--header="Authorization: Bearer $GITHUB_TOKEN")
     fi
 
     if command -v curl &> /dev/null; then
-        curl -fsSL "$optC" -o "$dest" "$url" || {
+        curl -fsSL "${optC[@]}" -o "$dest" "$url" || {
             .zgr-log "error" "Failed to download $url using curl."
             return 1
         }
     elif command -v wget &> /dev/null; then
-        wget -q "$optW" -O "$dest" "$url" || {
+        wget -q "${optW[@]}" -O "$dest" "$url" || {
             .zgr-log "error" "Failed to download $url using wget."
             return 1
         }
@@ -131,18 +170,33 @@ zgr-update () {}
     builtin emulate -LR zsh -o extendedglob
 
     local file="$1"
-    local dest="$2"
+    local dest="$2"  # directory to extract to
 
-    if [[ $file == *.tar.gz ]]; then
-        tar -xzf "$file" -C "$dest"
-    elif [[ $file == *.zip ]]; then
-        unzip "$file" -d "$dest"
-    elif [[ $file == *.tar.bz2 ]]; then
-        tar -xjf "$file" -C "$dest"
-    else
-        .zgr-log "error" "Unsupported archive format: $file"
-        return 1
-    fi
+    case "$file" in
+        *.zip)
+            unzip "$file" -d "$dest"
+            rm -f "$file"
+            ;;
+        *.tar.gz|*.tgz)
+            tar -xzf "$file" -C "$dest"
+            rm -f "$file"
+            ;;
+        *.tar.bz2)
+            tar -xjf "$file" -C "$dest"
+            rm -f "$file"
+            ;;
+        *.gz)
+            mv "$file" "$dest" && gzip -d "$dest/${file:t}"
+            ;;
+        *.*)
+            .zgr-log "error" "Unsupported archive format: $file"
+            return 1
+            ;;
+        *)
+            # No extraction needed for non-archive files
+            mv "$file" "$dest"
+            ;;
+    esac
 
     return 0
 }
@@ -338,8 +392,12 @@ zgr-update () {}
         fi
         reply+=( "${list[1]}" )
     done
+
     .zgr-log "debug" "reply: $reply"
-    echo "${(j.;.)reply}"
+    if (( ${#reply} > 1 )); then
+        .zgr-log "warn" "Multiple assets found: ${reply[@]}, use first one."
+    fi
+    echo "${reply[1]}"
 }
 
 

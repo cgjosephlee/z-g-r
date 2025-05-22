@@ -7,5 +7,6 @@ source ${0:A:h}/../init.zsh
 
 # .zgr-get-gh-r-asset sharkdp bat
 # .zgr-get-gh-r-asset sharkdp battt
+.zgr-get-gh-r-asset jqlang jq
 # .zgr-get-gh-r-asset babarot afx
-.zgr-get-gh-r-asset babarot afx v0.2.0
+# .zgr-get-gh-r-asset babarot afx v0.2.0
