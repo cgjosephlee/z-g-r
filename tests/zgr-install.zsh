@@ -5,7 +5,17 @@ ZGR_DIR="/workspaces/z-g-r/test_dir"
 
 source ${0:A:h}/../init.zsh
 
-zgr-install jqlang/jq
+# zgr-install \
+#     --bin 'jq* -> jq' \
+#     jqlang/jq
 
-zgr-install babarot/afx
+zgr-uninstall jqlang/jq
 
+# zgr-install \
+#     --if '[[ -n $GITHUB_TOKEN ]]' \
+#     --exec './afx completion zsh > _afx' \
+#     --bin 'afx -> afxx' \
+#     --comp '_afx' \
+#     babarot/afx
+
+# zgr-uninstall babarot/afx
