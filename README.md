@@ -1,6 +1,6 @@
 # Z-G-R: A GitHub Release Package Manager for Zsh
 
-Z-G-R (Zsh GitHub Release) is a lightweight package manager for Zsh that focuses on installing binaries from GitHub releases. It's designed to be a simplified alternative to [Zinit](https://github.com/zdharma-continuum/zinit), focusing specifically on the GitHub release binary installation functionality.
+Z-G-R (Zsh GitHub Release) is a lightweight package manager for Zsh that focuses on installing binaries from GitHub releases (fzf, bat, eza, lazygit, etc.). It's designed to be a simplified alternative to [Zinit](https://github.com/zdharma-continuum/zinit), focusing specifically on the GitHub release binary installation functionality.
 
 Z-G-R allows you to easily install, uninstall, and manage binaries from GitHub releases. It handles:
 
@@ -16,7 +16,7 @@ Z-G-R allows you to easily install, uninstall, and manage binaries from GitHub r
 Clone the repository and add `z-g-r` to your `plugins` array in `.zshrc`:
 
 ```zsh
-git clone https://github.com/cgjosephlee/z-g-r.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/z-g-r
+git clone https://github.com/cgjosephlee/z-g-r.git ${ZSH_CUSTOM}/plugins/z-g-r
 ```
 
 Then, in your `.zshrc`, add `z-g-r` to the list of plugins:

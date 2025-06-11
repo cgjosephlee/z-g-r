@@ -2,12 +2,11 @@
 ## ENV ##
 #########
 
-typeset -g ZGR_CONFIG="${ZGR_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/zgr/config.zsh:A}"
-typeset -g ZGR_DIR="${ZGR_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/zgr:A}"
+typeset -g ZGR_CONFIG="${ZGR_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/zgr/config.zsh}"
+typeset -g ZGR_DIR="${ZGR_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/zgr}"
 typeset -g ZGR_BIN_DIR="${ZGR_BIN_DIR:-$ZGR_DIR/bin}"
 typeset -g ZGR_PKG_DIR="${ZGR_PKG_DIR:-$ZGR_DIR/pkgs}"
 typeset -g ZGR_COMP_DIR="${ZGR_COMP_DIR:-$ZGR_DIR/completions}"
-# typeset -g ZGR_MAN_DIR="${ZGR_MAN_DIR:-$ZGR_DIR/man}"
 typeset -g ZGR_USE_GITHUB_API="${ZGR_USE_GITHUB_API:-1}"
 typeset -g ZGR_DEBUG="${ZGR_DEBUG:-0}"
 
@@ -291,7 +290,7 @@ zgr-clean () {
     local file="$1"
     local dest="$2"  # directory to extract to
 
-    case "$file" in
+    case "$file:t" in
         *.zip)
             unzip "$file" -d "$dest"
             rm -f "$file"
@@ -535,7 +534,7 @@ if [[ $ZGR_CONFIG == "0" || $ZGR_CONFIG == "false" ]]; then
     .zgr-log "debug" "ZGR_CONFIG is set to false, skipping configuration file loading."
     return 0
 elif [[ -f "$ZGR_CONFIG" ]]; then
-    . "$ZGR_CONFIG"
+    builtin source "$ZGR_CONFIG"
 else
     .zgr-log "error" "Configuration file $ZGR_CONFIG not found. Please create it."
     retrun 1

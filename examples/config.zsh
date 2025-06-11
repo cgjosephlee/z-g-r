@@ -12,6 +12,13 @@ zgr-install \
     sharkdp/bat
 
 zgr-install \
+    --if '[[ $OSTYPE != darwin* ]]' \
+    --exec 'wget -q https://raw.githubusercontent.com/eza-community/eza/main/completions/zsh/_eza' \
+    --bin 'eza' \
+    --comp '_eza' \
+    eza-community/eza
+
+zgr-install \
     --bin '**/fd' \
     --comp '**/_fd' \
     sharkdp/fd
@@ -24,13 +31,6 @@ zgr-install \
 zgr-install \
     --bin 'lazygit' \
     jesseduffield/lazygit
-
-zgr-install \
-    --if '[[ $OSTYPE != darwin* ]]' \
-    --exec 'wget -q https://raw.githubusercontent.com/eza-community/eza/main/completions/zsh/_eza' \
-    --bin 'eza' \
-    --comp '_eza' \
-    eza-community/eza
 
 zgr-install \
     --exec 'echo "export LS_COLORS=\"$(./vivid*/vivid generate nord)\"" > init.zsh' \
@@ -56,5 +56,6 @@ zgr-install \
     --bin 'nvim* -> nvim' \
     neovim/neovim
 
+# add this at the end to enable zsh completion
 autoload -Uz compinit
 compinit
