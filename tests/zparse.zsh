@@ -40,7 +40,6 @@ test_zparseopts() {
     print "===================="
 }
 
-# 各種情境測試
 test_zparseopts \
     --if "[[]]" --if "[[111]]" \
     --pick "123" \

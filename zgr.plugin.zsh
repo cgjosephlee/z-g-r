@@ -2,53 +2,25 @@
 ## ENV ##
 #########
 
-ZGR_CONFIG="${ZGR_CONFIG:-$HOME/.zgr_config.zsh}"
-ZGR_DIR="${ZGR_DIR:-$HOME/.zgr}"
-ZGR_BIN_DIR="${ZGR_BIN_DIR:-$ZGR_DIR/bin}"
-ZGR_PKG_DIR="${ZGR_PKG_DIR:-$ZGR_DIR/pkgs}"
-ZGR_COMP_DIR="${ZGR_COMP_DIR:-$ZGR_DIR/completions}"
-# ZGR_MAN_DIR="${ZGR_MAN_DIR:-$ZGR_DIR/man}"
-ZGR_USE_GITHUB_API="${ZGR_USE_GITHUB_API:-1}"
-ZGR_DEBUG="${ZGR_DEBUG:-0}"
+typeset -g ZGR_CONFIG="${ZGR_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/zgr/config.zsh:A}"
+typeset -g ZGR_DIR="${ZGR_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/zgr:A}"
+typeset -g ZGR_BIN_DIR="${ZGR_BIN_DIR:-$ZGR_DIR/bin}"
+typeset -g ZGR_PKG_DIR="${ZGR_PKG_DIR:-$ZGR_DIR/pkgs}"
+typeset -g ZGR_COMP_DIR="${ZGR_COMP_DIR:-$ZGR_DIR/completions}"
+# typeset -g ZGR_MAN_DIR="${ZGR_MAN_DIR:-$ZGR_DIR/man}"
+typeset -g ZGR_USE_GITHUB_API="${ZGR_USE_GITHUB_API:-1}"
+typeset -g ZGR_DEBUG="${ZGR_DEBUG:-0}"
 
-#####################
-## SOURCE EXECUTED ##
-#####################
-
-set -eo pipefail
-
-builtin source "${0:A:h}/JSON.sh" || {
-    echo "Error: JSON.sh not found."
-    return 1
-}
-
-# mkdir -p "$ZGR_DIR" "$ZGR_BIN_DIR" "$ZGR_PKG_DIR" "$ZGR_COMP_DIR"
-
-# path=( $ZGR_BIN_DIR $path )
-# fpath=( $ZGR_COMP_DIR $fpath )
-
-# source "$ZGR_CONFIG" 2>/dev/null || {
-#   echo "Warning: $ZGR_CONFIG not found. Please create it."
-#   return 1
-# }
+typeset -g -a _ZGR_INSTALLED=()
 
 ##########
 ## MAIN ##
 ##########
 
-# .zgr-install-help () {
-#     builtin emulate -LR zsh -o extendedglob
-#     builtin print -P -- "%F{green}Usage:%f zgr install [options] <user/repo>"
-#     builtin print -P -- "%F{yellow}Options:%f"
-#     builtin print -P -- "  %F{cyan}--help%f: Show this help message"
-#     builtin print -P -- "  %F{cyan}--if%f: Conditional execution command"
-#     builtin print -P -- "  %F{cyan}--exec%f: Command to execute after installation"
-#     builtin print -P -- "  %F{cyan}--src%f: Source files"
-#     builtin print -P -- "  %F{cyan}--comp%f: Completions to be linked (\"file\", \"from_file -> to_file\")"
-#     builtin print -P -- "  %F{cyan}--bin%f: Binaries to be linked"
-#     builtin print -P -- "  %F{cyan}--ver%f: Version of the package"
-#     builtin print -P -- "  %F{cyan}--pick%f: Pick binary"
-# }
+builtin source "${0:A:h}/JSON.sh" || {
+    echo "Error: JSON.sh not found."
+    return 1
+}
 
 zgr-install () {
     builtin emulate -LR zsh -o extendedglob
@@ -71,6 +43,8 @@ zgr-install () {
     local user="${opt_repo%%/*}"
     local repo="${opt_repo#*/}"
     local pkg_dir="$ZGR_PKG_DIR/$user---$repo"
+
+    _ZGR_INSTALLED+=("$user---$repo")
 
     # Handle --if
     if ! eval "$opt_if[2]"; then
@@ -123,16 +97,17 @@ zgr-install () {
 
         # Handle --exec, opt_exec=(--exec cmd1 --exec cmd2 ...)
         # Executed in package directory
-        local old_dir=$PWD i
+        local _old_dir=$PWD i
         for i in "${opt_exec[@]}"; do
             if [[ -n $i && $i != "--exec" ]]; then
                 .zgr-log "debug" "Executing command: $i"
                 builtin cd "$pkg_dir"
                 eval "$i" || {
                     .zgr-log "error" "Failed to execute command: $i."
+                    builtin cd "$_old_dir"
                     return 1
                 }
-                builtin cd "$old_dir"
+                builtin cd "$_old_dir"
             fi
         done
 
@@ -227,7 +202,27 @@ zgr-uninstall () {
     fi
 }
 
-zgr-reinstall () {}
+zgr-clean () {
+    builtin emulate -LR zsh -o extendedglob
+
+    .zgr-log "info" "Cleaning up unused packages and symlinks."
+    .zgr-log "debug" "_ZGR_INSTALLED: $_ZGR_INSTALLED"
+
+    # Remove all directories in $ZGR_PKG_DIR that are not in _ZGR_INSTALLED
+    local pkg
+    for pkg in $ZGR_PKG_DIR/*; do
+        .zgr-log "debug" "Checking package: $pkg"
+        if [[ -d $pkg ]] && (( ! $_ZGR_INSTALLED[(I)$pkg:t] )); then
+            .zgr-log "info" "Removing unused package: $pkg"
+            rm -rf "$pkg"
+        fi
+    done
+
+    # Remove all broken symlinks in $ZGR_BIN_DIR and $ZGR_COMP_DIR
+    (rm -f $ZGR_BIN_DIR/*(-@) $ZGR_COMP_DIR/*(-@)) 2> /dev/null
+
+    .zgr-log "info" "Cleanup completed."
+}
 
 #############
 ## HELPERS ##
@@ -311,6 +306,9 @@ zgr-reinstall () {}
             ;;
         *.gz)
             mv "$file" "$dest" && gzip -d "$dest/${file:t}"
+            ;;
+        (#i)*.appimage)
+            mv "$file" "$dest"
             ;;
         *.*)
             .zgr-log "error" "Unsupported archive format: $file"
@@ -523,3 +521,22 @@ zgr-reinstall () {}
     fi
     echo "${reply[1]}"
 }
+
+#####################
+## SOURCE EXECUTED ##
+#####################
+
+mkdir -p "$ZGR_DIR" "$ZGR_BIN_DIR" "$ZGR_PKG_DIR" "$ZGR_COMP_DIR"
+
+path=( $ZGR_BIN_DIR $path )
+fpath=( $ZGR_COMP_DIR $fpath )
+
+if [[ $ZGR_CONFIG == "0" || $ZGR_CONFIG == "false" ]]; then
+    .zgr-log "debug" "ZGR_CONFIG is set to false, skipping configuration file loading."
+    return 0
+elif [[ -f "$ZGR_CONFIG" ]]; then
+    . "$ZGR_CONFIG"
+else
+    .zgr-log "error" "Configuration file $ZGR_CONFIG not found. Please create it."
+    retrun 1
+fi
