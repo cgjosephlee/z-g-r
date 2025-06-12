@@ -1,6 +1,6 @@
 # Z-G-R: A GitHub Release Package Manager for Zsh
 
-Z-G-R (Zsh GitHub Release) is a lightweight package manager for Zsh that focuses on installing binaries from GitHub releases (fzf, bat, eza, lazygit, etc.). It's designed to be a simplified alternative to [Zinit](https://github.com/zdharma-continuum/zinit), focusing specifically on the GitHub release binary installation functionality.
+Z-G-R is a plugin helps you to install binaries from GitHub releases (fzf, bat, eza, lazygit and [more](https://github.com/ibraheemdev/modern-unix)).
 
 Z-G-R allows you to easily install, uninstall, and manage binaries from GitHub releases. It handles:
 
@@ -102,26 +102,27 @@ zgr-install \
     --if '[[ -n $SOME_STATUS ]]' \
     --ver 'v1.2.3' \
     --pick '*musl*' \
+    --exec 'wget -q https://some/script' \
     --exec './binary completion zsh > _binary' \
-    --bin 'binary* -> custom-name' \
-    --comp '_binary -> _custom-name' \
+    --bin 'binary*' \
+    --comp '**/_binary' \
     --src 'script-to-source.zsh' \
     username/repo
 ```
 
 Options:
 
-| Option | Description | Usage |
-|--------|-------------|-------|
-| `--if`   | Conditional execution command | Once |
-| `--ver`  | Specific version tag to install, default to "latest" | Once |
-| `--pick` | Filter release assets by pattern | Once |
-| `--exec` | Command to execute after installation (runs in package directory) | Multiple |
-| `--bin`  | Binary files to be linked into path | Multiple |
-| `--comp` | Completion files to be linked | Multiple |
-| `--src`  | Scripts to be sourced | Multiple |
+| Option   | Description                                                                 | Usage     |
+|----------|-----------------------------------------------------------------------------|-----------|
+| `--if`   | Conditional expression; installs the package only if this evaluates to true | Once      |
+| `--ver`  | Specify the version tag to install (defaults to "latest" if omitted)        | Once      |
+| `--pick` | Filter release assets by glob pattern                                       | Once      |
+| `--exec` | Command to execute after installation (runs in the package directory)       | Multiple  |
+| `--bin`  | Binary files to be linked                                                   | Multiple  |
+| `--comp` | Completion files to be linked                                               | Multiple  |
+| `--src`  | Scripts to source after installation                                        | Multiple  |
 
-For `--bin` and `--comp` options, you can use either:
+For `--bin` and `--comp`, you can use:
 - Simple format: `"filename"`
 - Rename format: `"source_file -> target_name"`
 
